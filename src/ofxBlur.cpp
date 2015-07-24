@@ -124,6 +124,7 @@ void ofxBlur::setup(int width, int height, int radius, float shape, int passes, 
     settings.useDepth = false;
     settings.useStencil = false;
     settings.numSamples = 0;
+	settings.textureTarget = GL_TEXTURE_RECTANGLE_ARB;
 	ping.resize(passes);
 	pong.resize(passes);
 	for(int i = 0; i < passes; i++) {
