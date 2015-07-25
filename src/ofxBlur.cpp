@@ -14,6 +14,7 @@ void GaussianRow(int elements, vector<float>& row, float variance = .2) {
 }
 
 string generateBlurSource(int radius, float shape) {
+
 	int rowSize = 2 * radius + 1;
 	
 	// generate row
@@ -51,7 +52,7 @@ string generateBlurSource(int radius, float shape) {
 	stringstream src;
     
 	if( ofIsGLProgrammableRenderer() ){
-		src << "#version 150\n";
+		src << "#version 330\n";
 		src << "#extension GL_ARB_texture_rectangle : enable\n";
 		src << "#define TEXTUREFETCH texture\n";
 		src << "out vec4 gl_FragColor;\n";
@@ -78,9 +79,6 @@ string generateBlurSource(int radius, float shape) {
 		src << "\t\t(TEXTUREFETCH(source, tc - (direction * " << offsets[i - 1] << ")) + \n";
 		src << "\t\tTEXTUREFETCH(source, tc + (direction * " << offsets[i - 1] << ")));\n";
 	}
-	//src << "gl_FragColor = vec4( gl_TexCoord[0].st, 1.0, 1.0);\n";
-	//src << "gl_FragColor = vec4( texCoordVarying.st, 1.0, 1.0);\n";
-	src << "gl_FragColor = vec4( testVarying.st, 1.0, 1.0);\n";
 	src << "}\n";
 	
 	return src.str();
@@ -94,13 +92,12 @@ string generateCombineSource(int passes, float downsample) {
 	stringstream src;
 
 	if( ofIsGLProgrammableRenderer() ){
-		src << "#version 150\n";
+		src << "#version 330\n";
 		src << "#extension GL_ARB_texture_rectangle : enable\n";
 		src << "#define TEXTUREFETCH texture\n";
 		src << "out vec4 gl_FragColor;\n";
 		//src << "in vec4 colorVarying;\n";
 		src << "in vec2 texCoordVarying;\n";
-		src << "in vec4 testVarying;\n";
 	} else {
 		src << "#version 120\n";
 		src << "#extension GL_ARB_texture_rectangle : enable\n";
@@ -136,21 +133,20 @@ string generateCombineSource(int passes, float downsample) {
 string getProgrammableRendererVertexSource()
 {
 	stringstream src;
-	src << "#version 150\n";
+	src << "#version 330\n";
 
 	src << "uniform mat4 projectionMatrix;\n";
 	src << "uniform mat4 modelViewMatrix;\n";
 	src << "uniform mat4 textureMatrix;\n";
 	src << "uniform mat4 modelViewProjectionMatrix;\n";
 
-	src << "in vec4  position;\n";
-	src << "in vec4  color;\n";
-	src << "in vec3  normal;\n";
-	src << "in vec2  texcoord;\n";
+	src << "layout(location = 0) in vec4  position;\n";
+	src << "layout(location = 1) in vec4  color;\n";
+	src << "layout(location = 2) in vec3  normal;\n";
+	src << "layout(location = 3) in vec2  texcoord;\n";
 
 	src << "out vec4 colorVarying;\n";
 	src << "out vec2 texCoordVarying;\n";
-	src << "out vec4 testVarying;\n";
 
 	src << "void main()\n";
 	src << "{\n";
@@ -158,8 +154,6 @@ string getProgrammableRendererVertexSource()
 	//src << "	texCoordVarying = (textureMatrix*vec4(texcoord.x,texcoord.y,0,1)).xy;\n";
 	src << "	texCoordVarying = texcoord.xy;\n";
 	src << "	gl_Position = modelViewProjectionMatrix * position;\n";
-	src << "	testVarying = vec4(0.0,1.0,0.0,1.0);\n";
-	
 	src << "}\n";
 
 	return src.str();
