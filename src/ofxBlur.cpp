@@ -279,9 +279,6 @@ void ofxBlur::end() {
         plane.set(w, h);
         plane.mapTexCoordsFromTexture(ping[0].getTextureReference());
 
-		//for( int i = 0; i < plane.getMesh().getNumTexCoords(); i++ ) { cout << plane.getMesh().getTexCoordsPointer()[i] << endl; }
-		//cout << endl;
-
 		base.begin();
 		combineShader.begin();
 		for(int i = 0; i < ping.size(); i++) {
@@ -303,24 +300,7 @@ void ofxBlur::end() {
 		base.end();
 	}
 
-
 	ofPopStyle();
-
-	ofVec2f pos(0,0);
-
-	base.draw( pos );
-	pos.x += base.getWidth();
-
-	for(int i = 0; i < ping.size(); i++) 
-	{
-		ofFbo& curPing = ping[i];
-		ofFbo& curPong = pong[i];
-
-		curPing.draw( pos );
-		curPong.draw( pos + ofVec2f(0, curPing.getHeight()));
-
-		pos.x += curPing.getWidth();
-	}
 }
 
 ofTexture& ofxBlur::getTextureReference() {
