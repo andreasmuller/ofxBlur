@@ -56,7 +56,6 @@ string generateBlurSource(int radius, float shape) {
 		src << "#extension GL_ARB_texture_rectangle : enable\n";
 		src << "#define TEXTUREFETCH texture\n";
 		src << "out vec4 gl_FragColor;\n";
-		//src << "in vec4 colorVarying;\n";
 		src << "in vec2 texCoordVarying;\n";
 		src << "in vec4 testVarying;\n";
 	} else {
@@ -96,7 +95,6 @@ string generateCombineSource(int passes, float downsample) {
 		src << "#extension GL_ARB_texture_rectangle : enable\n";
 		src << "#define TEXTUREFETCH texture\n";
 		src << "out vec4 gl_FragColor;\n";
-		//src << "in vec4 colorVarying;\n";
 		src << "in vec2 texCoordVarying;\n";
 	} else {
 		src << "#version 120\n";
@@ -150,9 +148,7 @@ string getProgrammableRendererVertexSource()
 
 	src << "void main()\n";
 	src << "{\n";
-	//src << "	colorVarying = color;\n";
-	//src << "	texCoordVarying = (textureMatrix*vec4(texcoord.x,texcoord.y,0,1)).xy;\n";
-	src << "	texCoordVarying = texcoord.xy;\n";
+	src << "	texCoordVarying = (textureMatrix*vec4(texcoord.x,texcoord.y,0,1)).xy;\n";
 	src << "	gl_Position = modelViewProjectionMatrix * position;\n";
 	src << "}\n";
 
