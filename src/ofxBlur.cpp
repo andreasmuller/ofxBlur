@@ -49,19 +49,38 @@ string generateBlurSource(int radius, float shape) {
 	}
 	
 	stringstream src;
-    src << "#version 120\n";
-	src << "#extension GL_ARB_texture_rectangle : enable\n";
+    
+	if( ofIsGLProgrammableRenderer() ){
+		src << "#version 150\n";
+		src << "#extension GL_ARB_texture_rectangle : enable\n";
+		src << "#define TEXTUREFETCH texture\n";
+		src << "out vec4 gl_FragColor;\n";
+		//src << "in vec4 colorVarying;\n";
+		src << "in vec2 texCoordVarying;\n";
+		src << "in vec4 testVarying;\n";
+	} else {
+		src << "#version 120\n";
+		src << "#extension GL_ARB_texture_rectangle : enable\n";
+		src << "#define TEXTUREFETCH texture2DRect\n";
+	}
 	src << "uniform sampler2DRect source;\n";
 	src << "uniform vec2 direction;\n";
 	src << "void main(void) {\n";
-	src << "\tvec2 tc = gl_TexCoord[0].st;\n";
-	src << "\tgl_FragColor = " << coefficients[0] << " * texture2DRect(source, tc);\n";
+	if( ofIsGLProgrammableRenderer() ){
+		src << "\tvec2 tc = texCoordVarying.st;\n";
+	} else {
+		src << "\tvec2 tc = gl_TexCoord[0].st;\n";
+	}
+	src << "\tgl_FragColor = " << coefficients[0] << " * TEXTUREFETCH(source, tc);\n";
 	for(int i = 1; i < coefficients.size(); i++) {
 		int curOffset = i - 1;
 		src << "\tgl_FragColor += " << coefficients[i] << " * \n";
-		src << "\t\t(texture2DRect(source, tc - (direction * " << offsets[i - 1] << ")) + \n";
-		src << "\t\ttexture2DRect(source, tc + (direction * " << offsets[i - 1] << ")));\n";
+		src << "\t\t(TEXTUREFETCH(source, tc - (direction * " << offsets[i - 1] << ")) + \n";
+		src << "\t\tTEXTUREFETCH(source, tc + (direction * " << offsets[i - 1] << ")));\n";
 	}
+	//src << "gl_FragColor = vec4( gl_TexCoord[0].st, 1.0, 1.0);\n";
+	//src << "gl_FragColor = vec4( texCoordVarying.st, 1.0, 1.0);\n";
+	src << "gl_FragColor = vec4( testVarying.st, 1.0, 1.0);\n";
 	src << "}\n";
 	
 	return src.str();
@@ -73,8 +92,20 @@ string generateCombineSource(int passes, float downsample) {
 		combineNames.push_back("s" + ofToString(i));
 	}
 	stringstream src;
-    src << "#version 120\n";
-	src << "#extension GL_ARB_texture_rectangle : enable\n";
+
+	if( ofIsGLProgrammableRenderer() ){
+		src << "#version 150\n";
+		src << "#extension GL_ARB_texture_rectangle : enable\n";
+		src << "#define TEXTUREFETCH texture\n";
+		src << "out vec4 gl_FragColor;\n";
+		//src << "in vec4 colorVarying;\n";
+		src << "in vec2 texCoordVarying;\n";
+		src << "in vec4 testVarying;\n";
+	} else {
+		src << "#version 120\n";
+		src << "#extension GL_ARB_texture_rectangle : enable\n";
+		src << "#define TEXTUREFETCH texture2DRect\n";
+	}
 	src << "uniform sampler2DRect " << ofJoinString(combineNames, ",") << ";\n";
 	src << "uniform float brightness;\n";
 	if(downsample == 1) {
@@ -83,15 +114,54 @@ string generateCombineSource(int passes, float downsample) {
 		src << "const float scaleFactor = " << downsample << ";\n";
 	}
 	src << "void main(void) {\n";
-	src << "\tvec2 tc = gl_TexCoord[0].st;\n";
+
+	if( ofIsGLProgrammableRenderer() ){
+		src << "\tvec2 tc = texCoordVarying.st;\n";
+	}
+	else {
+		src << "\tvec2 tc = gl_TexCoord[0].st;\n";
+	}
+
 	for(int i = 0; i < passes; i++) {
 		src << "\tgl_FragColor " << (i == 0 ? "=" : "+=");
-		src << " texture2DRect(" << combineNames[i] << ", tc);";
+		src << " TEXTUREFETCH(" << combineNames[i] << ", tc);";
 		src << (i + 1 != passes ? " tc *= scaleFactor;" : "");
 		src << "\n";
 	}
 	src << "\tgl_FragColor *= brightness / " << passes << ".;\n";
 	src << "}\n";
+	return src.str();
+}
+
+string getProgrammableRendererVertexSource()
+{
+	stringstream src;
+	src << "#version 150\n";
+
+	src << "uniform mat4 projectionMatrix;\n";
+	src << "uniform mat4 modelViewMatrix;\n";
+	src << "uniform mat4 textureMatrix;\n";
+	src << "uniform mat4 modelViewProjectionMatrix;\n";
+
+	src << "in vec4  position;\n";
+	src << "in vec4  color;\n";
+	src << "in vec3  normal;\n";
+	src << "in vec2  texcoord;\n";
+
+	src << "out vec4 colorVarying;\n";
+	src << "out vec2 texCoordVarying;\n";
+	src << "out vec4 testVarying;\n";
+
+	src << "void main()\n";
+	src << "{\n";
+	//src << "	colorVarying = color;\n";
+	//src << "	texCoordVarying = (textureMatrix*vec4(texcoord.x,texcoord.y,0,1)).xy;\n";
+	src << "	texCoordVarying = texcoord.xy;\n";
+	src << "	gl_Position = modelViewProjectionMatrix * position;\n";
+	src << "	testVarying = vec4(0.0,1.0,0.0,1.0);\n";
+	
+	src << "}\n";
+
 	return src.str();
 }
 
@@ -102,10 +172,16 @@ ofxBlur::ofxBlur()
 }
 
 void ofxBlur::setup(int width, int height, int radius, float shape, int passes, float downsample) {
+
 	string blurSource = generateBlurSource(radius, shape);
 	if(ofGetLogLevel() == OF_LOG_VERBOSE) {
 		cout << "ofxBlur is loading blur shader:" << endl << blurSource << endl;
 	}
+	
+	if( ofIsGLProgrammableRenderer() ){
+		blurShader.setupShaderFromSource(GL_VERTEX_SHADER, getProgrammableRendererVertexSource());
+	}
+
 	blurShader.setupShaderFromSource(GL_FRAGMENT_SHADER, blurSource);
 	blurShader.linkProgram();
 	
@@ -114,7 +190,12 @@ void ofxBlur::setup(int width, int height, int radius, float shape, int passes, 
 		if(ofGetLogLevel() == OF_LOG_VERBOSE) {
 			cout << "ofxBlur is loading combine shader:" << endl << combineSource << endl;
 		}
-		combineShader.setupShaderFromSource(GL_FRAGMENT_SHADER, combineSource);
+		
+		if( ofIsGLProgrammableRenderer() ){
+			combineShader.setupShaderFromSource(GL_VERTEX_SHADER, getProgrammableRendererVertexSource());
+		}
+
+		combineShader.setupShaderFromSource(GL_FRAGMENT_SHADER, combineSource);	
 		combineShader.linkProgram();
 	}
     
@@ -157,6 +238,7 @@ void ofxBlur::begin() {
 }
 
 void ofxBlur::end() {
+
 	base.end();
 
 	ofPushStyle();
@@ -206,7 +288,10 @@ void ofxBlur::end() {
         ofPlanePrimitive plane;
         plane.set(w, h);
         plane.mapTexCoordsFromTexture(ping[0].getTextureReference());
-		
+
+		//for( int i = 0; i < plane.getMesh().getNumTexCoords(); i++ ) { cout << plane.getMesh().getTexCoordsPointer()[i] << endl; }
+		//cout << endl;
+
 		base.begin();
 		combineShader.begin();
 		for(int i = 0; i < ping.size(); i++) {
@@ -227,8 +312,25 @@ void ofxBlur::end() {
 		ping[0].draw(0, 0);
 		base.end();
 	}
-	
+
+
 	ofPopStyle();
+
+	ofVec2f pos(0,0);
+
+	base.draw( pos );
+	pos.x += base.getWidth();
+
+	for(int i = 0; i < ping.size(); i++) 
+	{
+		ofFbo& curPing = ping[i];
+		ofFbo& curPong = pong[i];
+
+		curPing.draw( pos );
+		curPong.draw( pos + ofVec2f(0, curPing.getHeight()));
+
+		pos.x += curPing.getWidth();
+	}
 }
 
 ofTexture& ofxBlur::getTextureReference() {
@@ -237,4 +339,8 @@ ofTexture& ofxBlur::getTextureReference() {
 
 void ofxBlur::draw() {
 	base.draw(0, 0);
+}
+
+void ofxBlur::draw( ofRectangle rect ) {
+	base.draw( rect );
 }
