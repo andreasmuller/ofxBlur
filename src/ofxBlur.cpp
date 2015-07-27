@@ -57,7 +57,6 @@ string generateBlurSource(int radius, float shape) {
 		src << "#define TEXTUREFETCH texture\n";
 		src << "out vec4 gl_FragColor;\n";
 		src << "in vec2 texCoordVarying;\n";
-		src << "in vec4 testVarying;\n";
 	} else {
 		src << "#version 120\n";
 		src << "#extension GL_ARB_texture_rectangle : enable\n";
