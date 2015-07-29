@@ -189,7 +189,8 @@ void ofxBlur::setup(int width, int height, int radius, float shape, int passes, 
 	}
     
     base.allocate(width, height);
-    
+    base.begin(); ofClear(0); base.end();
+
 	ofFbo::Settings settings;
     settings.useDepth = false;
     settings.useStencil = false;
@@ -202,7 +203,9 @@ void ofxBlur::setup(int width, int height, int radius, float shape, int passes, 
 		settings.width = width;
 		settings.height = height;
         ping[i].allocate(settings);
+		ping[i].begin(); ofClear(0); ping[i].end();
         pong[i].allocate(settings);
+		pong[i].begin(); ofClear(0); pong[i].end();
 //        ping[i].setDefaultTextureIndex(i);
 //        pong[i].setDefaultTextureIndex(i);
 		width *= downsample;
