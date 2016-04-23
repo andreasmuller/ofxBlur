@@ -203,9 +203,9 @@ void ofxBlur::setup(int width, int height, int radius, float shape, int passes, 
 		settings.width = width;
 		settings.height = height;
         ping[i].allocate(settings);
-		ping[i].begin(); ofClear(0); ping[i].end();
+		ping[i].begin(); ofClear(0,0,0,0); ping[i].end();
         pong[i].allocate(settings);
-		pong[i].begin(); ofClear(0); pong[i].end();
+		pong[i].begin(); ofClear(0,0,0,0); pong[i].end();
 //        ping[i].setDefaultTextureIndex(i);
 //        pong[i].setDefaultTextureIndex(i);
 		width *= downsample;
@@ -232,6 +232,13 @@ void ofxBlur::begin() {
 void ofxBlur::end() {
 
 	base.end();
+
+	for(int i = 0; i < ping.size(); i++) {
+		ofFbo& curPing = ping[i];
+		ofFbo& curPong = pong[i];
+		curPing.begin(); ofClear(0,0,0,0); curPing.end();
+		curPong.begin(); ofClear(0,0,0,0); curPong.end();
+	}
 
 	ofPushStyle();
 	ofSetColor(255);
